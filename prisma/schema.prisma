@@ -1,0 +1,49 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid()) @db.Uuid
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  portfolios   Portfolio[]
+  transactions Transaction[]
+
+  @@map("users")
+}
+
+model Portfolio {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  symbol    String
+  quantity  Decimal  @db.Decimal(20, 8)
+  avgPrice  Decimal? @map("avg_price") @db.Decimal(10, 2)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, symbol])
+  @@map("portfolios")
+}
+
+model Transaction {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  symbol         String
+  price          Decimal  @db.Decimal(10, 2)
+  quantity       Decimal  @db.Decimal(20, 8)
+  status         String
+  vendorResponse Json?    @map("vendor_response") @db.JsonB
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("transactions")
+}
