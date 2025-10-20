@@ -6,7 +6,8 @@ WORKDIR /app
 COPY package*.json ./
 COPY yarn.lock ./
 
-RUN npm ci
+RUN yarn install --frozen-lockfile
+
 
 COPY . .
 
@@ -22,7 +23,7 @@ WORKDIR /app
 COPY package*.json ./
 COPY yarn.lock ./
 
-RUN npm ci --only=production && npm cache clean --force
+RUN yarn install --production
 
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
@@ -30,4 +31,4 @@ COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main"]
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/src/main"]

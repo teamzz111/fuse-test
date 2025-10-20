@@ -22,7 +22,6 @@ async function bootstrap() {
     .setTitle('Fuse Test')
     .setDescription('The fuse test API description')
     .setVersion('1.0')
-    .addTag('fuse-test')
     .build();
 
   const documentFactory = () => SwaggerModule.createDocument(app, config);
