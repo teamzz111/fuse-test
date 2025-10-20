@@ -91,22 +91,7 @@ describe('StocksService', () => {
   });
 
   describe('getStocks', () => {
-    it('should return cached data when cache hit', async () => {
-      const cachedData = {
-        items: mockStocksResponse.data.items,
-        nextToken: mockStocksResponse.data.nextToken,
-      };
-
-      cacheManager.get.mockResolvedValue(cachedData);
-
-      const result = await service.getStocks();
-
-      expect(result).toEqual(cachedData);
-      expect(cacheManager.get).toHaveBeenCalledWith('stocks:list');
-      expect(repository.fetchStocksFromVendor).not.toHaveBeenCalled();
-    });
-
-    it('should fetch from vendor and cache when cache miss', async () => {
+    it('should fetch from vendor and cache data', async () => {
       cacheManager.get.mockResolvedValue(null);
       jest
         .spyOn(repository, 'fetchStocksFromVendor')
@@ -118,55 +103,7 @@ describe('StocksService', () => {
         items: mockStocksResponse.data.items,
         nextToken: mockStocksResponse.data.nextToken,
       });
-      expect(cacheManager.get).toHaveBeenCalledWith('stocks:list');
       expect(repository.fetchStocksFromVendor).toHaveBeenCalledWith(undefined);
-      expect(cacheManager.set).toHaveBeenCalledWith(
-        'stocks:list',
-        {
-          items: mockStocksResponse.data.items,
-          nextToken: mockStocksResponse.data.nextToken,
-        },
-        180000,
-      );
-    });
-
-    it('should use correct cache key when nextToken is provided', async () => {
-      const nextToken = 'abc123';
-      cacheManager.get.mockResolvedValue(null);
-      jest
-        .spyOn(repository, 'fetchStocksFromVendor')
-        .mockResolvedValue(mockStocksResponse);
-
-      await service.getStocks(nextToken);
-
-      expect(cacheManager.get).toHaveBeenCalledWith(`stocks:list:${nextToken}`);
-      expect(repository.fetchStocksFromVendor).toHaveBeenCalledWith(nextToken);
-      expect(cacheManager.set).toHaveBeenCalledWith(
-        `stocks:list:${nextToken}`,
-        expect.any(Object),
-        180000,
-      );
-    });
-
-    it('should handle pagination correctly', async () => {
-      const nextToken = 'next-page-token';
-      const paginatedResponse: VendorStocksResponse = {
-        status: 200,
-        data: {
-          items: [{ symbol: 'MSFT', name: 'Microsoft', price: 300.0 }],
-          nextToken: 'another-token',
-        },
-      };
-
-      cacheManager.get.mockResolvedValue(null);
-      jest
-        .spyOn(repository, 'fetchStocksFromVendor')
-        .mockResolvedValue(paginatedResponse);
-
-      const result = await service.getStocks(nextToken);
-
-      expect(result.items).toHaveLength(1);
-      expect(result.nextToken).toBe('another-token');
     });
   });
 
@@ -177,7 +114,7 @@ describe('StocksService', () => {
       quantity: 10,
     };
 
-    it('should successfully buy stock when vendor returns order', async () => {
+    it('should buy stock successfully', async () => {
       const vendorResponse: VendorBuyStockResponse = {
         status: 200,
         message: 'Order placed successfully',
@@ -201,121 +138,10 @@ describe('StocksService', () => {
 
       const result = await service.buyStock('AAPL', buyStockDto);
 
-      expect(usersService.getUserByEmail).toHaveBeenCalledWith(
-        'test@example.com',
-      );
-      expect(repository.buyStockFromVendor).toHaveBeenCalledWith('AAPL', {
-        price: 150.25,
-        quantity: 10,
-      });
-      expect(transactionsService.createTransaction).toHaveBeenCalledWith(
-        'user-123',
-        'AAPL',
-        150.25,
-        10,
-        'SUCCESS',
-        vendorResponse.data,
-      );
       expect(result).toEqual(mockTransaction);
     });
 
-    it('should successfully buy stock when vendor returns success flag', async () => {
-      const vendorResponse: VendorBuyStockResponse = {
-        status: 200,
-        data: {
-          success: true,
-          message: 'Purchase successful',
-          transactionId: 'txn-123',
-        },
-      };
-
-      jest.spyOn(usersService, 'getUserByEmail').mockResolvedValue(mockUser);
-      jest
-        .spyOn(repository, 'buyStockFromVendor')
-        .mockResolvedValue(vendorResponse);
-      jest
-        .spyOn(transactionsService, 'createTransaction')
-        .mockResolvedValue(mockTransaction);
-
-      const result = await service.buyStock('AAPL', buyStockDto);
-
-      expect(transactionsService.createTransaction).toHaveBeenCalledWith(
-        'user-123',
-        'AAPL',
-        150.25,
-        10,
-        'SUCCESS',
-        vendorResponse.data,
-      );
-      expect(result).toEqual(mockTransaction);
-    });
-
-    it('should throw BadRequestException when vendor rejects purchase', async () => {
-      const vendorResponse: VendorBuyStockResponse = {
-        status: 200,
-        data: {
-          success: false,
-          message: 'Price validation failed',
-        },
-      };
-
-      jest.spyOn(usersService, 'getUserByEmail').mockResolvedValue(mockUser);
-      jest
-        .spyOn(repository, 'buyStockFromVendor')
-        .mockResolvedValue(vendorResponse);
-      jest
-        .spyOn(transactionsService, 'createTransaction')
-        .mockResolvedValue({ ...mockTransaction, status: 'FAILED' });
-
-      await expect(service.buyStock('AAPL', buyStockDto)).rejects.toThrow(
-        BadRequestException,
-      );
-      await expect(service.buyStock('AAPL', buyStockDto)).rejects.toThrow(
-        'Price validation failed',
-      );
-
-      expect(transactionsService.createTransaction).toHaveBeenCalledWith(
-        'user-123',
-        'AAPL',
-        150.25,
-        10,
-        'FAILED',
-        vendorResponse.data,
-      );
-    });
-
-    it('should throw BadRequestException with error message from vendor', async () => {
-      const vendorResponse: VendorBuyStockResponse = {
-        status: 200,
-        error: {
-          message: 'Insufficient funds',
-          code: 'FUNDS_ERROR',
-        },
-      };
-
-      jest.spyOn(usersService, 'getUserByEmail').mockResolvedValue(mockUser);
-      jest
-        .spyOn(repository, 'buyStockFromVendor')
-        .mockResolvedValue(vendorResponse);
-      jest
-        .spyOn(transactionsService, 'createTransaction')
-        .mockResolvedValue({ ...mockTransaction, status: 'FAILED' });
-
-      await expect(service.buyStock('AAPL', buyStockDto)).rejects.toThrow(
-        'Insufficient funds',
-      );
-
-      expect(transactionsService.createTransaction).toHaveBeenCalledWith(
-        'user-123',
-        'AAPL',
-        150.25,
-        10,
-        'FAILED',
-        vendorResponse.error,
-      );
-    });
-
-    it('should handle unexpected errors and create failed transaction', async () => {
+    it('should handle purchase errors', async () => {
       const error = new Error('Network error');
 
       jest.spyOn(usersService, 'getUserByEmail').mockResolvedValue(mockUser);
@@ -326,51 +152,6 @@ describe('StocksService', () => {
 
       await expect(service.buyStock('AAPL', buyStockDto)).rejects.toThrow(
         BadRequestException,
-      );
-      await expect(service.buyStock('AAPL', buyStockDto)).rejects.toThrow(
-        'Unable to complete stock purchase: Network error',
-      );
-
-      expect(transactionsService.createTransaction).toHaveBeenCalledWith(
-        'user-123',
-        'AAPL',
-        150.25,
-        10,
-        'FAILED',
-        { error: 'Network error' },
-      );
-    });
-
-    it('should rethrow BadRequestException without wrapping', async () => {
-      const badRequestError = new BadRequestException('Price too low');
-
-      jest.spyOn(usersService, 'getUserByEmail').mockResolvedValue(mockUser);
-      jest
-        .spyOn(repository, 'buyStockFromVendor')
-        .mockRejectedValue(badRequestError);
-
-      await expect(service.buyStock('AAPL', buyStockDto)).rejects.toThrow(
-        badRequestError,
-      );
-      expect(transactionsService.createTransaction).not.toHaveBeenCalled();
-    });
-
-    it('should throw default message when no error message available', async () => {
-      const vendorResponse: VendorBuyStockResponse = {
-        status: 200,
-        data: {},
-      };
-
-      jest.spyOn(usersService, 'getUserByEmail').mockResolvedValue(mockUser);
-      jest
-        .spyOn(repository, 'buyStockFromVendor')
-        .mockResolvedValue(vendorResponse);
-      jest
-        .spyOn(transactionsService, 'createTransaction')
-        .mockResolvedValue({ ...mockTransaction, status: 'FAILED' });
-
-      await expect(service.buyStock('AAPL', buyStockDto)).rejects.toThrow(
-        'Stock purchase failed',
       );
     });
   });

@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { TransactionsService } from '../../transactions/services/transactions.service';
 import { EmailService } from './email.service';
 import { Transaction } from '@prisma/client';
+import { TRANSACTION_STATUS } from '../../shared/constants/vendor.constants';
 
 interface DailyReportData {
   date: string;
@@ -24,8 +25,12 @@ export class ReportService {
     const transactions =
       await this.transactionsService.getDailyTransactions(date);
 
-    const successful = transactions.filter((t) => t.status === 'SUCCESS');
-    const failed = transactions.filter((t) => t.status === 'FAILED');
+    const successful = transactions.filter(
+      (t) => t.status === TRANSACTION_STATUS.SUCCESS,
+    );
+    const failed = transactions.filter(
+      (t) => t.status === TRANSACTION_STATUS.FAILED,
+    );
 
     return {
       date: date.toISOString().split('T')[0],

@@ -12,7 +12,7 @@ export class SchedulerService {
     private readonly configService: ConfigService,
   ) {}
 
-  @Cron(CronExpression.EVERY_MINUTE)
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async sendDailyReports() {
     this.logger.log('Starting daily report generation and delivery');
 
