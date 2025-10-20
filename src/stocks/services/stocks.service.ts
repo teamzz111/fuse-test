@@ -55,11 +55,11 @@ export class StocksService {
     symbol: string,
     buyStockDto: BuyStockDto,
   ): Promise<Transaction> {
-    this.logger.log(
-      `User ${buyStockDto.email} attempting to buy ${symbol} x${buyStockDto.quantity} @ ${buyStockDto.price}`,
-    );
-
     const user = await this.usersService.getUserByEmail(buyStockDto.email);
+
+    this.logger.log(
+      `User ${user.email} attempting to buy ${symbol} x${buyStockDto.quantity} @ ${buyStockDto.price}`,
+    );
 
     try {
       const vendorResponse = await this.stocksRepository.buyStockFromVendor(

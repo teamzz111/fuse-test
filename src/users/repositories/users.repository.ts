@@ -17,4 +17,13 @@ export class UsersRepository {
       where: { email },
     });
   }
+
+  async create(data: { email: string; name?: string }): Promise<User> {
+    return this.prisma.user.create({
+      data: {
+        email: data.email,
+        name: data.name,
+      },
+    });
+  }
 }

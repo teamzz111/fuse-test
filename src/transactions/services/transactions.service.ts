@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { TransactionsRepository } from '../repositories/transactions.repository';
 import { Transaction } from '@prisma/client';
+import { JsonValue } from '@prisma/client/runtime/library';
+import { TransactionsRepository } from '../repositories/transactions.repository';
 
 @Injectable()
 export class TransactionsService {
@@ -16,7 +17,7 @@ export class TransactionsService {
     price: number,
     quantity: number,
     status: 'SUCCESS' | 'FAILED',
-    vendorResponse?: any,
+    vendorResponse?: JsonValue,
   ): Promise<Transaction> {
     this.logger.log(
       `Creating transaction: ${status} - ${symbol} x${quantity} @ ${price} for user ${userId}`,
