@@ -10,11 +10,26 @@ services:
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
     ports:
-      - "${DB_PORT:-5432}:5432"
+      - '${DB_PORT:-5432}:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER:-postgres}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: fuse-redis
+    restart: unless-stopped
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -26,7 +41,7 @@ services:
     container_name: fuse-app
     restart: unless-stopped
     ports:
-      - "${PORT:-3000}:3000"
+      - '${PORT:-3000}:3000'
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       PORT: ${PORT:-3000}
@@ -35,8 +50,17 @@ services:
       DB_USER: ${DB_USER:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
       DB_NAME: ${DB_NAME:-fuse_db}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDIS_TTL: ${REDIS_TTL:-180}
       FUSE_API_URL: ${FUSE_API_URL}
       FUSE_API_KEY: ${FUSE_API_KEY}
+      VENDOR_RETRY_ATTEMPTS: ${VENDOR_RETRY_ATTEMPTS:-3}
+      VENDOR_RETRY_INITIAL_DELAY: ${VENDOR_RETRY_INITIAL_DELAY:-100}
+      VENDOR_RETRY_MAX_DELAY: ${VENDOR_RETRY_MAX_DELAY:-5000}
+      VENDOR_CIRCUIT_BREAKER_THRESHOLD: ${VENDOR_CIRCUIT_BREAKER_THRESHOLD:-5}
+      VENDOR_CIRCUIT_BREAKER_DURATION: ${VENDOR_CIRCUIT_BREAKER_DURATION:-30000}
       EMAIL_HOST: ${EMAIL_HOST}
       EMAIL_PORT: ${EMAIL_PORT}
       EMAIL_USER: ${EMAIL_USER}
@@ -45,9 +69,13 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     volumes:
       - ./logs:/app/logs
 
 volumes:
   postgres_data:
+    driver: local
+  redis_data:
     driver: local
