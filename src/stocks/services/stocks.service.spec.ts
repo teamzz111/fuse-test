@@ -1,6 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { BadRequestException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import type { Cache } from 'cache-manager';
 import { StocksService } from './stocks.service';
 import { StocksRepository } from '../repositories/stocks.repository';
 import { TransactionsService } from '../../transactions/services/transactions.service';
@@ -13,7 +15,7 @@ describe('StocksService', () => {
   let repository: StocksRepository;
   let transactionsService: TransactionsService;
   let usersService: UsersService;
-  let cacheManager: any;
+  let cacheManager: jest.Mocked<Cache>;
 
   const mockStocksResponse: VendorStocksResponse = {
     status: 200,
@@ -37,9 +39,9 @@ describe('StocksService', () => {
     id: 'transaction-123',
     userId: 'user-123',
     symbol: 'AAPL',
-    price: new (require('@prisma/client').Prisma.Decimal)(150.25),
-    quantity: new (require('@prisma/client').Prisma.Decimal)(10),
-    status: 'SUCCESS' as const,
+    price: new Prisma.Decimal(150.25),
+    quantity: new Prisma.Decimal(10),
+    status: 'SUCCESS',
     vendorResponse: {},
     createdAt: new Date(),
   };

@@ -1,15 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Transaction } from '@prisma/client';
-
-export interface CreateTransactionDto {
-  userId: string;
-  symbol: string;
-  price: number;
-  quantity: number;
-  status: 'SUCCESS' | 'FAILED';
-  vendorResponse?: any;
-}
+import { CreateTransactionDto } from '../dto/create-transaction.dto';
 
 @Injectable()
 export class TransactionsRepository {
@@ -23,7 +15,7 @@ export class TransactionsRepository {
         price: data.price,
         quantity: data.quantity,
         status: data.status,
-        vendorResponse: data.vendorResponse,
+        vendorResponse: data.vendorResponse as object | undefined,
       },
     });
   }
@@ -38,6 +30,24 @@ export class TransactionsRepository {
   async findById(id: string): Promise<Transaction | null> {
     return this.prisma.transaction.findUnique({
       where: { id },
+    });
+  }
+
+  async findByDateRange(
+    startDate: Date,
+    endDate: Date,
+  ): Promise<Transaction[]> {
+    return this.prisma.transaction.findMany({
+      where: {
+        createdAt: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        user: true,
+      },
     });
   }
 }
