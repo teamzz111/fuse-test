@@ -2,10 +2,11 @@ import {
   circuitBreaker,
   ConsecutiveBreaker,
   ExponentialBackoff,
-  handleAll,
+  handleWhen,
   retry,
   wrap,
 } from 'cockatiel';
+import { HttpException } from '@nestjs/common';
 
 export interface ResilienceConfig {
   retries?: number;
@@ -20,27 +21,42 @@ const defaultConfig: Required<ResilienceConfig> = {
   backoffInitialDelay: 100,
   backoffMaxDelay: 5000,
   circuitBreakerThreshold: 5,
-  circuitBreakerDuration: 30000, // 30 seconds
+  circuitBreakerDuration: 30000,
 };
 
 export function createResiliencePolicy(config?: ResilienceConfig) {
   const finalConfig = { ...defaultConfig, ...config };
 
-  // Retry policy with exponential backoff
-  const retryPolicy = retry(handleAll, {
-    maxAttempts: finalConfig.retries,
-    backoff: new ExponentialBackoff({
-      initialDelay: finalConfig.backoffInitialDelay,
-      maxDelay: finalConfig.backoffMaxDelay,
+  const retryPolicy = retry(
+    handleWhen((err) => {
+      if (err instanceof HttpException) {
+        const status = err.getStatus();
+        return status >= 500 || status === 429;
+      }
+      return true;
     }),
-  });
+    {
+      maxAttempts: finalConfig.retries,
+      backoff: new ExponentialBackoff({
+        initialDelay: finalConfig.backoffInitialDelay,
+        maxDelay: finalConfig.backoffMaxDelay,
+      }),
+    },
+  );
 
-  // Circuit breaker policy
-  const breakerPolicy = circuitBreaker(handleAll, {
-    halfOpenAfter: finalConfig.circuitBreakerDuration,
-    breaker: new ConsecutiveBreaker(finalConfig.circuitBreakerThreshold),
-  });
+  const breakerPolicy = circuitBreaker(
+    handleWhen((err) => {
+      if (err instanceof HttpException) {
+        const status = err.getStatus();
+        return status >= 500 || status === 429;
+      }
+      return true;
+    }),
+    {
+      halfOpenAfter: finalConfig.circuitBreakerDuration,
+      breaker: new ConsecutiveBreaker(finalConfig.circuitBreakerThreshold),
+    },
+  );
 
-  // Combine policies: circuit breaker wraps retry
   return wrap(breakerPolicy, retryPolicy);
 }
