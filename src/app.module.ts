@@ -8,6 +8,7 @@ import { SharedModule } from './shared/shared.module';
 import { CacheModule } from './shared/cache/cache.module';
 import { StocksModule } from './stocks/stocks.module';
 import { EmailModule } from './email/email.module';
+import { PortfoliosModule } from './portfolios/portfolios.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { EmailModule } from './email/email.module';
     SharedModule,
     PrismaModule,
     StocksModule,
+    PortfoliosModule,
     EmailModule,
   ],
   controllers: [AppController],

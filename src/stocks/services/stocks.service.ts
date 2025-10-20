@@ -11,6 +11,7 @@ import { StocksResponseDto } from '../dto/stocks-response.dto';
 import { BuyStockDto } from '../dto/buy-stock.dto';
 import { TransactionsService } from '../../transactions/services/transactions.service';
 import { UsersService } from '../../users/services/users.service';
+import { PortfoliosService } from '../../portfolios/services/portfolios.service';
 import { Transaction } from '@prisma/client';
 
 @Injectable()
@@ -21,6 +22,7 @@ export class StocksService {
     private readonly stocksRepository: StocksRepository,
     private readonly transactionsService: TransactionsService,
     private readonly usersService: UsersService,
+    private readonly portfoliosService: PortfoliosService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
@@ -78,6 +80,13 @@ export class StocksService {
       if (isSuccess) {
         this.logger.log(
           `Transaction successful for user ${user.email} - ${symbol} x${buyStockDto.quantity}`,
+        );
+
+        await this.portfoliosService.updatePortfolio(
+          user.id,
+          symbol,
+          buyStockDto.quantity,
+          buyStockDto.price,
         );
 
         return this.transactionsService.createTransaction(
