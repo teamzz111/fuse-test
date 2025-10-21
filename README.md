@@ -59,6 +59,8 @@ EMAIL_PASSWORD=your_email_password
 EMAIL_FROM=noreply@example.com
 
 DAILY_REPORT_RECIPIENTS=email1@example.com,email2@example.com
+```
+
 Installation
 Using Docker (Recommended)
 bash
