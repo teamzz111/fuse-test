@@ -36,29 +36,47 @@ This service provides a reliable backend for trading operations, featuring API r
 Create a `.env` file in the project root with:
 
 ```env
+# Application
 NODE_ENV=development
 PORT=3000
 
+# Database
 DB_HOST=localhost
 DB_PORT=5432
 DB_USER=postgres
 DB_PASSWORD=postgres
 DB_NAME=fuse_db
 
+# Fuse API
 FUSE_API_URL=https://api.challenge.fusefinance.com
-FUSE_API_KEY=your_api_key_here
+FUSE_API_KEY=nSbPbFJfe95BFZufiDwF32UhqZLEVQ5K4wdtJI2e
 
+# Vendor Resilience Configuration
+VENDOR_RETRY_ATTEMPTS=3
+VENDOR_RETRY_INITIAL_DELAY=100
+VENDOR_RETRY_MAX_DELAY=5000
+VENDOR_CIRCUIT_BREAKER_THRESHOLD=5
+VENDOR_CIRCUIT_BREAKER_DURATION=30000
+
+# Redis Configuration
 REDIS_HOST=localhost
 REDIS_PORT=6379
+REDIS_PASSWORD=
 REDIS_TTL=180
 
-EMAIL_HOST=smtp.example.com
+# Email Configuration (SMTP)
+EMAIL_HOST=smtp.sendgrid.net
 EMAIL_PORT=587
-EMAIL_USER=your_email_user
-EMAIL_PASSWORD=your_email_password
-EMAIL_FROM=noreply@example.com
+EMAIL_SECURE=false
+EMAIL_USER=apikey
+EMAIL_PASSWORD=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
+EMAIL_FROM=contacto@andreslargo.com
 
-DAILY_REPORT_RECIPIENTS=email1@example.com,email2@example.com
+# Daily Report Configuration
+DAILY_REPORT_RECIPIENTS=andresf.largo@gmail.com
+
+# Prisma Database Connection
+DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?schema=public"
 ```
 
 Installation
