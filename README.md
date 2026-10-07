@@ -49,7 +49,7 @@ DB_NAME=fuse_db
 
 # Fuse API
 FUSE_API_URL=https://api.challenge.fusefinance.com
-FUSE_API_KEY=nSbPbFJfe95BFZufiDwF32UhqZLEVQ5K4wdtJI2e
+FUSE_API_KEY=your_fuse_api_key
 
 # Vendor Resilience Configuration
 VENDOR_RETRY_ATTEMPTS=3
@@ -69,7 +69,7 @@ EMAIL_HOST=smtp.sendgrid.net
 EMAIL_PORT=587
 EMAIL_SECURE=false
 EMAIL_USER=apikey
-EMAIL_PASSWORD=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
+EMAIL_PASSWORD=your_sendgrid_api_key
 EMAIL_FROM=contacto@andreslargo.com
 
 # Daily Report Configuration
