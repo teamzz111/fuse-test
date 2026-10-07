@@ -1,146 +1,128 @@
-# Fuse Test - Service
+# Portfolio Trading API
 
-A **NestJS-app** stock trading service that integrates with the **Fuse Finance API** to manage stock portfolios and transactions.
+A NestJS backend for listing stocks, executing buy orders against an external brokerage API, and tracking each user's positions. Calls to the upstream provider go through retries, exponential backoff and a circuit breaker. Stock listings are cached in Redis, every order attempt is recorded for auditing, and a daily report goes out by email.
 
-## Overview
-
-This service provides a reliable backend for trading operations, featuring API resilience, caching, and automated daily reporting.
+![NestJS](https://img.shields.io/badge/NestJS-11-E0234E?logo=nestjs&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
+![Prisma](https://img.shields.io/badge/Prisma-6-2D3748?logo=prisma&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-7-DC382D?logo=redis&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 
 ## Features
 
-- **Stock Management:** List and purchase stocks  
-- **Portfolio Tracking:** View user portfolios with real-time valuations  
-- **Transaction History:** Full audit trail of purchases  
-- **Resilience:** Includes retry and circuit breaker logic for external APIs  
-- **Caching:** Redis integration for better performance  
-- **Daily Reports:** Automated email reports summarizing daily transactions  
-- **API Documentation:** Swagger/OpenAPI available at `/api`
+- **Stock catalog**: paginated listing from the upstream provider, cached in Redis (3 min TTL)
+- **Order execution**: buy orders forwarded to the brokerage API, validated with `class-validator`
+- **Portfolio tracking**: per-user positions with weighted average cost
+- **Audit trail**: every order attempt is stored with its status (`SUCCESS` / `FAILED`) and the raw vendor response
+- **Resilience**: [Cockatiel](https://github.com/connor4312/cockatiel) policies (retry + exponential backoff + consecutive-failure circuit breaker), configurable through env vars
+- **Daily reporting**: a scheduled job emails the previous day's transaction summary
+- **API docs**: OpenAPI / Swagger UI at `/api`
 
-## Tech Stack
+## Architecture
 
-- **Framework:** NestJS 11  
-- **Database:** PostgreSQL 16 with Prisma ORM  
-- **Cache:** Redis 7  
-- **Email:** Nodemailer (SMTP)  
-- **Resilience:** Cockatiel (retry, circuit breaker, backoff)  
-- **Documentation:** Swagger/OpenAPI  
+```
+            ┌──────────────────────────────────────────────┐
+ HTTP ───►  │ Controllers   stocks · portfolios · health   │
+            ├──────────────────────────────────────────────┤
+            │ Services      business rules, cache, P&L     │
+            ├──────────────────────────────────────────────┤
+            │ Repositories  Prisma (DB) · VendorClient     │
+            └──────┬──────────────┬──────────────┬─────────┘
+                   │              │              │
+             PostgreSQL         Redis     Brokerage API
+                                          (retry + circuit breaker)
 
-## Requirements
-
-- Node.js 20+  
-- Docker and Docker Compose (recommended)  
-- PostgreSQL 16 and Redis 7 (if running locally)  
-
-## Environment Setup
-
-Create a `.env` file in the project root with:
-
-```env
-# Application
-NODE_ENV=development
-PORT=3000
-
-# Database
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=postgres
-DB_PASSWORD=postgres
-DB_NAME=fuse_db
-
-# Fuse API
-FUSE_API_URL=https://api.challenge.fusefinance.com
-FUSE_API_KEY=your_fuse_api_key
-
-# Vendor Resilience Configuration
-VENDOR_RETRY_ATTEMPTS=3
-VENDOR_RETRY_INITIAL_DELAY=100
-VENDOR_RETRY_MAX_DELAY=5000
-VENDOR_CIRCUIT_BREAKER_THRESHOLD=5
-VENDOR_CIRCUIT_BREAKER_DURATION=30000
-
-# Redis Configuration
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_PASSWORD=
-REDIS_TTL=180
-
-# Email Configuration (SMTP)
-EMAIL_HOST=smtp.sendgrid.net
-EMAIL_PORT=587
-EMAIL_SECURE=false
-EMAIL_USER=apikey
-EMAIL_PASSWORD=your_sendgrid_api_key
-EMAIL_FROM=contacto@andreslargo.com
-
-# Daily Report Configuration
-DAILY_REPORT_RECIPIENTS=andresf.largo@gmail.com
-
-# Prisma Database Connection
-DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?schema=public"
+ Scheduler (cron, 00:00 UTC) ──► ReportService ──► SMTP
 ```
 
-Installation
-Using Docker (Recommended)
-bash
-Always show details
+Design decisions and trade-offs are documented in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-Copy code
-docker-compose up -d
-This will start:
+## Getting started
 
-PostgreSQL on port 5432
+### With Docker (recommended)
 
-Redis on port 6379
+```bash
+cp .env.example .env   # then fill in MARKET_API_* and EMAIL_*
+docker compose up -d
+```
 
-The app on port 3000
+This starts PostgreSQL, Redis and the API on `http://localhost:3000`. Migrations run automatically on startup.
 
-Database migrations run automatically on startup.
+### Local
 
-Local Development
-bash
-Always show details
+Requires Node.js 20+, PostgreSQL 16 and Redis 7.
 
-Copy code
+```bash
 yarn install
+cp .env.example .env
 npx prisma migrate deploy
+npx prisma db seed       # optional: sample data
 yarn start:dev
-Running the App
-Development: yarn start:dev
+```
 
-Production: yarn build && yarn start:prod
+## Configuration
 
-Debug: yarn start:debug
+All configuration is read from environment variables (see [`.env.example`](.env.example)).
 
-API Endpoints
-GET /stocks → List available stocks
+| Variable | Description | Default |
+|---|---|---|
+| `PORT` | HTTP port | `3000` |
+| `DATABASE_URL` | PostgreSQL connection string | — |
+| `MARKET_API_URL` / `MARKET_API_KEY` | Upstream brokerage API base URL and key | — |
+| `REDIS_HOST` / `REDIS_PORT` / `REDIS_TTL` | Redis connection and cache TTL (s) | `localhost` / `6379` / `180` |
+| `VENDOR_RETRY_ATTEMPTS` | Max retries per vendor call | `3` |
+| `VENDOR_RETRY_INITIAL_DELAY` / `VENDOR_RETRY_MAX_DELAY` | Backoff bounds (ms) | `100` / `5000` |
+| `VENDOR_CIRCUIT_BREAKER_THRESHOLD` | Consecutive failures before opening the circuit | `5` |
+| `VENDOR_CIRCUIT_BREAKER_DURATION` | Time the circuit stays open (ms) | `30000` |
+| `EMAIL_HOST` / `EMAIL_PORT` / `EMAIL_USER` / `EMAIL_PASSWORD` / `EMAIL_FROM` | SMTP settings | — |
+| `DAILY_REPORT_RECIPIENTS` | Comma-separated report recipients | — |
 
-POST /stocks/:symbol/buy → Buy stock
+## API
 
-GET /portfolios?email=user@example.com → Get portfolio
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/health` | Liveness check |
+| `GET` | `/stocks?nextToken=` | List available stocks (paginated, cached) |
+| `POST` | `/stocks/:symbol/buy` | Place a buy order |
+| `GET` | `/portfolios?email=` | Get a user's positions |
 
-Access Swagger docs at:
-http://localhost:3000/api
+Example order:
 
-Daily Reports
-A scheduled task runs daily at midnight (UTC) and sends transaction summaries to recipients defined in DAILY_REPORT_RECIPIENTS.
+```bash
+curl -X POST http://localhost:3000/stocks/AAPL/buy \
+  -H "Content-Type: application/json" \
+  -d '{"email": "jane@example.com", "price": 150.25, "quantity": 10}'
+```
 
-Project Structure
-bash
-Always show details
+Interactive docs: `http://localhost:3000/api`
 
-Copy code
+## Project structure
+
+```
 src/
- ├── stocks/          # Stock operations
- ├── portfolios/      # Portfolio management
- ├── transactions/    # Internal transaction logic
- ├── email/           # Email reporting
- ├── shared/          # Cache, resilience, vendor client
- └── prisma/          # ORM and migrations
-Testing
-bash
-Always show details
+├── stocks/          # catalog + order execution (controller, service, repository, DTOs)
+├── portfolios/      # positions and weighted average cost
+├── transactions/    # order audit trail
+├── users/           # user lookup
+├── email/           # SMTP delivery, report builder, cron scheduler
+├── shared/          # vendor client, resilience policies, cache module, constants
+└── prisma/          # Prisma service
+prisma/              # schema, migrations, seed
+docs/                # architecture notes
+```
 
-Copy code
-yarn test       # Unit tests
-yarn test:e2e   # E2E tests
-yarn test:cov   # Coverage
+## Testing
+
+```bash
+yarn test        # unit tests
+yarn test:e2e    # end-to-end
+yarn test:cov    # coverage
+```
+
+## Roadmap
+
+- JWT authentication and per-user rate limiting
+- Sell orders and multi-currency support
+- Wrap the order record and position update in a single DB transaction
+- Prometheus metrics and tracing

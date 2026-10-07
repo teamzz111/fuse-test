@@ -1,8 +1,8 @@
 {
-  "name": "fuse-test",
-  "version": "0.0.1",
-  "description": "",
-  "author": "",
+  "name": "portfolio-trading-api",
+  "version": "1.0.0",
+  "description": "NestJS service for stock listing, order execution and portfolio tracking on top of an external brokerage API",
+  "author": "Andrés Largo <contacto@andreslargo.com>",
   "private": true,
   "license": "UNLICENSED",
   "scripts": {

@@ -1,12 +1,10 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: fuse-postgres
+    container_name: trading-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${DB_NAME:-fuse_db}
+      POSTGRES_DB: ${DB_NAME:-trading_db}
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
     ports:
@@ -21,7 +19,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: fuse-redis
+    container_name: trading-redis
     restart: unless-stopped
     ports:
       - '${REDIS_PORT:-6379}:6379'
@@ -38,7 +36,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: fuse-app
+    container_name: trading-app
     restart: unless-stopped
     ports:
       - '${PORT:-3000}:3000'
@@ -49,14 +47,14 @@ services:
       DB_PORT: 5432
       DB_USER: ${DB_USER:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
-      DB_NAME: ${DB_NAME:-fuse_db}
-      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-fuse_db}?schema=public
+      DB_NAME: ${DB_NAME:-trading_db}
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-trading_db}?schema=public
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
       REDIS_TTL: ${REDIS_TTL:-180}
-      FUSE_API_URL: ${FUSE_API_URL}
-      FUSE_API_KEY: ${FUSE_API_KEY}
+      MARKET_API_URL: ${MARKET_API_URL}
+      MARKET_API_KEY: ${MARKET_API_KEY}
       VENDOR_RETRY_ATTEMPTS: ${VENDOR_RETRY_ATTEMPTS:-3}
       VENDOR_RETRY_INITIAL_DELAY: ${VENDOR_RETRY_INITIAL_DELAY:-100}
       VENDOR_RETRY_MAX_DELAY: ${VENDOR_RETRY_MAX_DELAY:-5000}

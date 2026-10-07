@@ -19,8 +19,8 @@ async function bootstrap() {
   );
 
   const config = new DocumentBuilder()
-    .setTitle('Fuse Test')
-    .setDescription('The fuse test API description')
+    .setTitle('Portfolio Trading API')
+    .setDescription('Stock listing, order execution and portfolio tracking')
     .setVersion('1.0')
     .build();
 

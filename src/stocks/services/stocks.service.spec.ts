@@ -7,6 +7,7 @@ import { StocksService } from './stocks.service';
 import { StocksRepository } from '../repositories/stocks.repository';
 import { TransactionsService } from '../../transactions/services/transactions.service';
 import { UsersService } from '../../users/services/users.service';
+import { PortfoliosService } from '../../portfolios/services/portfolios.service';
 import { VendorStocksResponse } from '../interfaces/stock.interface';
 import { VendorBuyStockResponse } from '../interfaces/buy-stock.interface';
 
@@ -67,6 +68,12 @@ describe('StocksService', () => {
           provide: UsersService,
           useValue: {
             getUserByEmail: jest.fn(),
+          },
+        },
+        {
+          provide: PortfoliosService,
+          useValue: {
+            updatePortfolio: jest.fn(),
           },
         },
         {

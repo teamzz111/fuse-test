@@ -16,8 +16,8 @@ export class VendorClientService {
   private readonly resiliencePolicy: IPolicy;
 
   constructor(private readonly configService: ConfigService) {
-    this.baseUrl = this.configService.get<string>('FUSE_API_URL') ?? '';
-    this.apiKey = this.configService.get<string>('FUSE_API_KEY') ?? '';
+    this.baseUrl = this.configService.get<string>('MARKET_API_URL') ?? '';
+    this.apiKey = this.configService.get<string>('MARKET_API_KEY') ?? '';
 
     // Initialize resilience policy with configuration from env
     this.resiliencePolicy = createResiliencePolicy({
