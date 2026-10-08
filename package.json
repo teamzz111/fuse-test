@@ -4,7 +4,7 @@
   "description": "NestJS service for stock listing, order execution and portfolio tracking on top of an external brokerage API",
   "author": "Andrés Largo <contacto@andreslargo.com>",
   "private": true,
-  "license": "UNLICENSED",
+  "license": "MIT",
   "scripts": {
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
